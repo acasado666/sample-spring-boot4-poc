@@ -1,0 +1,133 @@
+### Spring Framework 7 API Versioning Examples
+### All requests for testing different versioning approaches
+### Currently active in WebConfig with `useMediaTypeParameter(MediaType.APPLICATION_JSON, "version")`
+
+###
+# Response Type Differences:
+# - Person: Full entity with all fields
+# - PersonRequestV1: {name, email, passport} - single name field
+# - PersonRequestV2: {firstName, lastName, email, passport} - single name field
+# - PersonResponseV1: {id, name, email, passport} - single name field
+# - PersonResponseV2: {id, firstName, lastName, email, passport} - separate firstName/lastName fields
+
+
+###
+# Path Segment Versioning
+# Note: Requires usePathSegment(1) to be uncommented in WebConfig
+# v1 returns List<PersonResponseV1>, v2 returns List<PersonResponseV2>
+
+### v1 - Path Segment
+GET http://localhost:8080/apiPathSegment/v1/persons
+
+### v2 - Path Segment
+GET http://localhost:8080/apiPathSegment/v2/persons
+
+###
+# Request Header Versioning
+# Note: Requires useRequestHeader("X-API-Version") to be uncommented in WebConfig
+# v1 returns List<PersonResponseV1>, v2 returns List<PersonResponseV2>
+
+### v1 - Request Header
+GET http://localhost:8080/api/persons
+X-API-Version: 1.0
+
+### v2 - Request Header
+GET http://localhost:8080/api/persons
+X-API-Version: 2.0
+
+# v1 returns PersonResponseV1, v2 returns PersonResponseV2
+### v1 - Request Header
+GET http://localhost:8080/api/persons/1
+X-API-Version: 1.0
+
+### v2 - Request Header
+GET http://localhost:8080/api/persons/1
+X-API-Version: 2.0
+
+# v1 posts PersonRequestV1 and returns PersonResponseV1, v2 posts PersonRequestV2 and  returns PersonResponseV2
+### v1 - Request Header
+POST http://localhost:8080/api/persons
+Content-Type: application/json
+X-API-Version: 1.0
+
+{
+    "name": "Steve Martin",
+    "email": "s.martin@gmail.com",
+    "passport": "678901"
+}
+
+
+### v2 - Request Header
+POST http://localhost:8080/api/persons
+Content-Type: application/json
+X-API-Version: 2.0
+
+{
+  "firstName": "Daniel",
+  "lastName": "Lewis",
+  "email": "d.lewis@gmail.com",
+  "passport": "789012"
+}
+
+
+### v1 - Request Header, updates PersonDTOv1 and returns PersonDTOv1
+PUT http://localhost:8080/api/persons
+Content-Type: application/json
+X-API-Version: 1.0
+
+{
+  "id": 6,
+  "name": "Steve Merkel",
+  "email": "s.merkel@gmail.com",
+  "passport": "890123"
+}
+
+
+
+### v2 - Request Header, updates PersonDTOv2 and returns PersonDTOv2
+PUT http://localhost:8080/api/persons
+Content-Type: application/json
+X-API-Version: 2.0
+
+{
+  "id": 7,
+  "firstName": "Dani",
+  "lastName": "DeVito",
+  "email": "d.devito@gmail.com",
+  "passport": "901234"
+}
+
+### v1 or v2 - Request Header deletes by ID PathVariable
+DELETE http://localhost:8080/api/persons/6
+X-API-Version: 1.0
+
+
+### v1 or v2 - Request Header deletes by ID PathVariable
+DELETE http://localhost:8080/api/persons/7
+X-API-Version: 2.0
+
+###
+# Query Parameter Versioning
+# v1 returns List<PersonResponseV1>, v2 returns List<PersonResponseV2>
+# Note: Requires useQueryParam("version") to be uncommented in WebConfig
+
+### v1 - Query Parameter
+GET http://localhost:8080/apiReqParam/persons?version=1.0
+
+### v2 - Query Parameter
+GET http://localhost:8080/apiReqParam/persons?version=v2
+
+###
+# Media Type Parameter Versioning
+# v1 returns List<PersonResponseV1>, v2 returns List<PersonResponseV2>
+# Note: Currently active in WebConfig with useMediaTypeParameter(MediaType.APPLICATION_JSON, "version")
+
+### v1 - Media Type Parameter
+GET http://localhost:8080/apiMedia/persons
+Accept: application/json;version=1.0
+
+### v2 - Media Type Parameter
+GET http://localhost:8080/apiMedia/persons
+Accept: application/json;version=2.0
+
+
