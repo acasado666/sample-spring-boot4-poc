@@ -1,9 +1,151 @@
-# Spring Framework 7 API Versioning Demo
+# Spring Boot 4 API Versioning Demo
 
-A comprehensive demonstration of **Spring Framework 7's new first-class API versioning support** - showcasing how to 
+A comprehensive demonstration of **Spring Framework 7's and Spring Boot 4 new first-class API versioning support** - showcasing how to 
 build version-aware REST APIs with multiple versioning strategies.
 
-## What This Project Proves
+## Spring Boot 4 Platform Updates
+
+1. **Java and JVM Support**: Java 25, minimum Java 17, and support for latest JVM features
+2. **Jakarta EE 11 Alignment**: Servlet 6.1, JPA 3.2
+3. **Kotlin 2.2 Support**: Better Gradle build integration.
+4. **Cloud-Native and Containerization**:Improved Buildpacks, More efficient Docker-native builds, Micrometer 2.x + OpenTelemetry integration.
+5. **Productivity & Developer Experience**: Spring Boot CLI updates, new Actuator Endpoints.
+6. **Security**: Spring Security 7 with improved OAuth2.2 / OIDC
+7. **Future-Proofing with Spring AI & Native APIs**: Spring AI integrations, GraalVM native image hints.
+
+## Spring Boot 4 Features
+### 1. Elegant API Versioning
+
+Spring now supports API versioning directly in the @RequestMapping annotation, making it easier to maintain multiple versions of your REST endpoints and ensure backward compatibility.
+
+```java
+import com.kodebytes.dto.PersonResponseV1;
+
+@RestController
+@RequestMapping("/api/")
+public class ProductController {
+
+    @RequestMapping(value = "/persons/{id}", version = "1")
+    public PersonResponseV1 findById(@PathVariable @Positive @NotNull Long id) { ...}
+
+    @RequestMapping(value = "/persons/{id}", version = "2")
+    public PersonResponseV1 findById(@PathVariable @Positive @NotNull Long id) { ...}
+}
+```
+
+
+```bash
+curl -X GET "http://localhost:8080/api/persons/1" \
+     -H "X-API-Version: 1.0"
+```
+
+```bash
+curl -X GET "http://localhost:8080/api/persons/1" \
+     -H "X-API-Version: 2.0"
+```
+
+
+### 2. Null Safety with JSpecify and Resilience
+
+```java
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+
+import org.springframework.resilience.annotation.ConcurrencyLimit;
+import org.springframework.resilience.annotation.EnableResilientMethods;
+import org.springframework.resilience.annotation.Retryable;
+
+@Service
+@EnableResilientMethods
+@Validated
+@NullMarked
+public class PersonService {
+
+    //-------------
+    @ConcurrencyLimit(value = 3) // Allow only 3 concurrent calls
+    public List<PersonResponseV1> getPersonsV1() {
+        return personRepository.findAll()
+                .stream()
+                .map(personMapper::toV1)
+                .toList();
+    }
+    
+    //-------------
+    @Nullable
+    @Retryable(
+            includes = {ResourceNotFoundException.class, TimeoutException.class}, // Specific exceptions
+            maxRetries = 3,            // Number of retries AFTER the first failure
+            delay = 1000,              // 1-second base delay
+            multiplier = 2.0,          // Exponential backoff (1s, 2s, 4s)
+            maxDelay = 10000,          // Cap delay at 10 seconds
+            jitter = 200               // Adds +/- 200ms randomness to prevent "thundering herd"
+    )
+    public PersonResponseV1 getPersonByIdV1(Long id) {
+        return personMapper.toV1(personRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Person", "id", id.toString()))
+        );
+    }
+    //-------------
+}
+```
+
+### 3. Dedicated Configuration for HTTP Clients with @ImportHttpServices
+
+Spring Framework 7 adds the @ImportHttpServices annotation, making it easier to configure and group HTTP clients. This streamlines the setup for applications that interact with multiple external services.
+
+```java
+@Configuration(proxyBeanMethods = false)
+@ImportHttpServices(group = "weather", types = {WeatherClient.class})
+public class HttpClientConfig {}
+```
+
+### 4. Streaming Support with InputStream and OutputStream in HTTP Clients
+
+HTTP clients now support streaming request and response bodies using InputStream and OutputStream. This is especially useful for handling large files or data streams efficiently.
+
+```java
+@PostMapping("/upload")
+public void uploadFile(InputStream inputStream) {
+    // process large file stream
+}
+```
+
+### 5. New JmsClient and Enhancements to JdbcClient
+
+The new JmsClient provides a modern API for working with JMS (Java Message Service), while JdbcClient has been enhanced for easier and more flexible database operations.
+
+```java
+JmsClient jmsClient = JmsClient.create(connectionFactory);
+jmsClient.send("queue", "Hello World");
+
+JdbcClient jdbcClient = JdbcClient.create(dataSource);
+List<User> users = jdbcClient.sql("SELECT * FROM users").query(User.class).list();
+```
+### 6. New RestTestClient for REST API Testing
+
+RestTestClient is a new tool for testing REST APIs, offering a fluent API and support for both live servers and mock setups. It simplifies writing and maintaining integration tests for your endpoints.
+
+```java
+RestTestClient client = RestTestClient.bindToServer("http://localhost:8080");
+client.get().uri("/api/user").exchange().expectStatus().isOk();
+
+JdbcClient jdbcClient = JdbcClient.create(dataSource);
+List<User> users = jdbcClient.sql("SELECT * FROM users").query(User.class).list();
+```
+
+### 7.  Enhanced Path Matching with Improved PathPattern Support
+
+Path matching in Spring MVC has been improved with the enhanced PathPattern support, replacing legacy options and providing more powerful and flexible URI template matching for your controllers.
+
+```java
+@RequestMapping("/**/pages/{pageName}")
+public String handlePage(@PathVariable String pageName) {
+    return pageName;
+}
+```
+
+## Features Demonstrated in This Project.
 
 This Spring Boot 4 application showcases all four API versioning approaches introduced in Spring Framework 7:
 
@@ -23,6 +165,10 @@ Each approach returns different response formats to demonstrate real-world API e
 4. **Test**: Use the provided `api-requests.http` file (IntelliJ IDEA/VS Code) or HTTPie examples below
 5. **Curl MD**: Use description provided `api-requests.curl.md` 
 
+
+
+
+## 1. Elegant API Versioning
 The application starts on: 
 1. Api-Headers: `http://localhost:8080/api/persons`
 2. Api-Segments: `http://localhost:8080/apiPathSegment/v1/persons` or `http://localhost:8080/apiPathSegment/v2/persons`
@@ -142,7 +288,11 @@ The main advantage of Spring Framework 7's approach is that it provides a standa
 
 ## HTTPie Request Examples
 
+api-requests.http
 
+## Curl Request Examples
+
+api-requests.curl.md 
 
 ### Configuration
 
